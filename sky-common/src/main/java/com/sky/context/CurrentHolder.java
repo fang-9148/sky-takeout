@@ -1,5 +1,8 @@
-package com.sky.utils;
+package com.sky.context;
 
+/**
+ * 用户上下文
+ */
 public class CurrentHolder {
 
     private static final ThreadLocal<Long> CURRENT_USER_ID=new ThreadLocal<>();

@@ -3,18 +3,21 @@ package com.sky.service.impl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.sky.constant.MessageConstant;
+import com.sky.constant.PasswordConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.dto.EmployeeDTO;
+import com.sky.dto.EmployeeEditPasswordDTO;
 import com.sky.dto.EmployeeLoginDTO;
 import com.sky.dto.EmployeePageQueryDTO;
 import com.sky.entity.Employee;
 import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
+import com.sky.exception.BaseException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
 import com.sky.result.PageResult;
 import com.sky.service.EmployeeService;
-import com.sky.utils.CurrentHolder;
+import com.sky.context.CurrentHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -28,6 +31,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Autowired
     private EmployeeMapper employeeMapper;
+    @Autowired
+    private EmployeeService employeeService;
 
     /**
      * 员工登录
@@ -78,6 +83,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .updateTime(LocalDateTime.now())
                 .createUser(CurrentHolder.getCurrentUserId())
                 .updateUser(CurrentHolder.getCurrentUserId())
+                .password(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()))
                 .build();
         employeeMapper.insert(employee);
     }
@@ -89,6 +95,26 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         PageInfo<Employee> page = new PageInfo<>(list);
         return new PageResult(page.getTotal(),page.getList());
+    }
+
+    @Override
+    public Employee getInfo(Long id) {
+       return employeeMapper.getById(id);
+    }
+
+
+    public void editPassword(EmployeeEditPasswordDTO password){
+        //1.校验旧密码
+        String check=DigestUtils.md5DigestAsHex(password.getOldPassword().getBytes());
+        Employee emp = employeeMapper.getById(password.getEmpId());
+        if(emp==null)return;
+        if(!check.equals(emp.getPassword())){
+            throw new BaseException("旧密码错误");
+        }
+
+        //2.添加新密码
+        password.setNewPassword(DigestUtils.md5DigestAsHex(password.getNewPassword().getBytes()));
+        employeeMapper.updatePassword(password);
     }
 
 }
